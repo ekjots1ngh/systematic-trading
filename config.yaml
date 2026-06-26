@@ -1,0 +1,31 @@
+# Default configuration for the systematic trader.
+# Backtest universe uses the bundled real data; live universe uses tradeable tickers.
+
+backtest_universe: [SPX, BTC, WTI]
+live_universe:      [SPY, QQQ, GLD, TLT, USO]   # liquid fractionable proxies
+
+portfolio_target_vol: 0.12     # 12% annualised target for the whole book
+vol_halflife: 30               # days, for the trailing per-instrument vol estimate
+max_leverage: 3.0              # cap on |weight| per instrument inside the backtest
+
+vol_overlay: true              # managed-vol overlay to keep the book near target risk
+overlay_window: 60
+overlay_bounds: [0.3, 3.0]
+
+# Round-trip-ish trading cost in basis points of notional (commission + slippage).
+cost_bps:
+  SPX: 2.0
+  WTI: 3.0
+  BTC: 10.0
+default_cost_bps: 3.0
+
+# Strategy blend (weights sum to 1).
+ensemble:
+  - {type: TimeSeriesMomentum, lookback: 120, weight: 0.45}
+  - {type: MACrossover, fast: 30, slow: 120, weight: 0.30}
+  - {type: MeanReversion, window: 15, weight: 0.25}
+
+# Live-trading safety caps.
+live:
+  max_gross: 1.0       # total |weight| across names (1.0 = no margin)
+  max_per_name: 0.5    # cap on any single instrument

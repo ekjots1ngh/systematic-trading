@@ -1,0 +1,11 @@
+# Core (needed for backtesting)
+pandas>=2.0
+numpy>=1.24
+matplotlib>=3.7
+pyyaml>=6.0
+
+# Live data (your own machine)
+yfinance>=0.2.40
+
+# Live execution on Alpaca (only needed to actually trade)
+alpaca-py>=0.20
