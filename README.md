@@ -82,6 +82,48 @@ The strategy layer never knows about dollars. It only outputs a direction and co
 in [-1, 1]. The backtester and the live trader share the exact same sizing code, so what
 you simulate is what you trade.
 
+## Trust, control and audit
+
+The live trader is wrapped in a control stack so a human stays in charge and can verify
+everything after the fact. Every run, in order:
+
+1. **Pre-trade health check.** Re-runs the backtest on the data it is about to trade and
+   confirms it is sane: data is fresh, prices have no gaps, volatility has not exploded,
+   and the strategy still produces a finite result. If any check fails, it does not trade
+   and it alerts you. This cannot promise profits; it catches the data and model breakages
+   that cause most live blow-ups.
+2. **Kill switch.** If a file named `HALT` exists (create it, or run `--halt`), the system
+   refuses to trade, full stop. `--resume` clears it. This is the instant stop button.
+3. **Circuit breaker.** If account equity falls more than a set fraction (default 20%)
+   below its high-water mark, trading halts automatically and you are alerted.
+4. **Per-trade reasoning.** Every order carries a plain-English rationale built from the
+   exact numbers that sized it: each sub-strategy's signal, the blended conviction, the
+   trailing volatility, the vol-target scaler, the resulting weight, and the gap being
+   closed. If the explanation and the order ever disagree, that is a visible bug.
+5. **Approval gate.** Any single order above a notional limit (default $5,000) is not sent
+   automatically. It is parked, you are alerted, and it executes only after `--approve`.
+   Small routine trades flow through; only big ones need you to say yes.
+6. **Notifications.** Email (SMTP) and/or SMS (Twilio) on every trade, every approval
+   request, and every halt. Configured by environment variables so no secrets touch the
+   repo. If neither is set up, alerts still go to the log.
+7. **Audit ledger.** Every event (preflight result, equity, order, fill, approval, halt)
+   is appended to `audit/ledger.jsonl`, an append-only record, plus a human-readable
+   `audit/trader.log`. The complete life of any trade can be reconstructed from it.
+
+Control commands:
+
+```bash
+python run_live.py --simulate     # run the whole stack offline against a mock broker
+python run_live.py --status       # halt state, pending approvals, recent ledger events
+python run_live.py --halt         # stop all trading now
+python run_live.py --resume       # re-enable trading
+python run_live.py --approve      # execute trades waiting for your sign-off
+```
+
+Try `--simulate` first: it exercises preflight, reasoning, the approval gate, the ledger
+and alerts end to end without an account or any keys, and writes a real `audit/` folder
+you can inspect.
+
 ## Run it
 
 Backtest (works offline, uses the bundled real data):

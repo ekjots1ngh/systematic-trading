@@ -117,6 +117,19 @@ class Ensemble(Strategy):
         combined = pd.concat(sigs, axis=1).sum(axis=1)
         return combined.clip(-1, 1)
 
+    def component_signals(self, df: pd.DataFrame) -> dict:
+        """
+        Latest signal from each member plus the blended result. This is what lets the
+        system explain a position: which sub-strategies wanted it and how strongly.
+        """
+        out = {}
+        for m, w in zip(self.members, self.weights):
+            s = m.signal(df).dropna()
+            out[m.name] = {"signal": float(s.iloc[-1]) if len(s) else 0.0, "weight": w}
+        combined = self.signal(df).dropna()
+        out["combined"] = float(combined.iloc[-1]) if len(combined) else 0.0
+        return out
+
 
 def build_default_ensemble() -> Ensemble:
     """The blend used by the default config: two trend horizons plus mean reversion."""

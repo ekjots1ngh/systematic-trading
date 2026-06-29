@@ -29,3 +29,13 @@ ensemble:
 live:
   max_gross: 1.0       # total |weight| across names (1.0 = no margin)
   max_per_name: 0.5    # cap on any single instrument
+
+# --- Controls, audit and notifications (added) ---
+controls:
+  approval_threshold: 5000.0    # $ notional above which an order needs human approval
+  circuit_breaker_dd: 0.20      # auto-halt if equity falls >20% below its high-water mark
+  # Kill switch: create a file named HALT in the project root (or run --halt) to stop all trading.
+
+# Notifications are configured via environment variables, not here, so no secrets live in the repo:
+#   Email: ALERT_EMAIL_TO, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS  (Gmail needs an App Password)
+#   SMS:   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM, ALERT_SMS_TO  (pip install twilio)

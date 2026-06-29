@@ -142,3 +142,29 @@ def target_weights_now(data: dict[str, pd.DataFrame], strat: Strategy, cfg: BTCo
         w = _instrument_weights(df.sort_index(), strat, per_inst_target, cfg)
         out[t] = float(w.iloc[-1]) if len(w.dropna()) else 0.0
     return out
+
+
+def explain_targets(data: dict[str, pd.DataFrame], strat: Strategy, cfg: BTConfig) -> dict[str, dict]:
+    """
+    Same target weights as target_weights_now, but with the full breakdown behind each:
+    the per-strategy signal components, trailing vol, the vol-target scaler, and the
+    resulting weight. This is what powers the per-trade reasoning and the audit ledger.
+    """
+    n = len(data)
+    per_inst_target = cfg.portfolio_target_vol / np.sqrt(n)
+    out = {}
+    for t, df in data.items():
+        df = df.sort_index()
+        rets = df["close"].pct_change()
+        vol = (rets.ewm(halflife=cfg.vol_halflife, min_periods=cfg.vol_halflife).std()
+               * np.sqrt(252))
+        vol_now = float(vol.dropna().iloc[-1]) if len(vol.dropna()) else float("nan")
+        scaler = min(cfg.max_leverage, per_inst_target / vol_now) if vol_now and vol_now > 0 else 0.0
+        if hasattr(strat, "component_signals"):
+            comps = strat.component_signals(df)
+        else:
+            s = strat.signal(df).dropna()
+            comps = {"combined": float(s.iloc[-1]) if len(s) else 0.0}
+        weight = float(np.clip(comps["combined"] * scaler, -cfg.max_leverage, cfg.max_leverage))
+        out[t] = {"components": comps, "vol": vol_now, "scaler": scaler, "weight": weight}
+    return out

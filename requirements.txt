@@ -9,3 +9,6 @@ yfinance>=0.2.40
 
 # Live execution on Alpaca (only needed to actually trade)
 alpaca-py>=0.20
+
+# Optional: SMS alerts via Twilio (email alerts use the standard library, no install needed)
+twilio>=9.0 ; extra == "sms"

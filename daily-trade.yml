@@ -1,0 +1,33 @@
+name: Daily Systematic Trade
+
+# Runs the strategy in the cloud on a schedule, so it does not depend on your
+# laptop being awake. The same run_live.py used locally runs here.
+
+on:
+  workflow_dispatch:          # lets you trigger it by hand from the Actions tab
+  schedule:
+    # 15:00 UTC on weekdays. That is comfortably after the US market open
+    # (09:30 New York) in both winter and summer, so it survives daylight saving
+    # without needing two schedules. GitHub cron is always in UTC.
+    - cron: '0 15 * * 1-5'
+
+jobs:
+  trade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the strategy (paper trading)
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+        run: python run_live.py --paper --execute
